@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/menu_options"
+        android:icon="@drawable/ic_settings"
+        app:actionViewClass="com.github.teocci.featureguide.lib.TooltipActionView"
+        android:title="@string/menu_item_options"/>
+    <item
+        android:id="@+id/menu_quit"
+        android:icon="@drawable/ic_quit"
+        android:title="@string/menu_item_quit"/>
+</menu>

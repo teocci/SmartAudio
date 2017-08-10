@@ -1,0 +1,17 @@
+Open Source Software
+
+The following sets forth attribution notices for third party software that may be contained in portions of this product.
+
+----------------------
+
+This product contains libstreaming library, which can be downloaded from https://github.com/fyhertz/libstreaming
+This software includes the following license and notice below:
+
+Copyright 2013 fyhertz
+
+                    GNU GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2013
+
+ Copyright (C) 2013 Free Software Foundation, Inc. <http://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.

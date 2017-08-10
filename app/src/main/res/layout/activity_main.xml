@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/ic_background"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:weightSum="1"
+    tools:context=".ui.MainActivity">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingBottom="80dp"
+        android:paddingTop="80dp">
+
+        <com.github.teocci.newsmartaudio.views.CircleButtonView
+            android:id="@+id/circleButton"
+            android:layout_width="172dp"
+            android:layout_height="172dp"
+            android:src="@drawable/ic_main_btn"
+            app:cb_color="#99CC00"
+            app:cb_pressedRingWidth="8dip"/>
+
+        <TextView
+            android:id="@+id/version"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignBottom="@+id/circleButton"
+            android:layout_alignEnd="@+id/circleButton"
+            android:layout_alignLeft="@+id/circleButton"
+            android:layout_alignRight="@+id/circleButton"
+            android:layout_alignStart="@+id/circleButton"
+            android:layout_alignTop="@+id/circleButton"
+            android:layout_centerInParent="true"
+            android:layout_centerVertical="true"
+            android:gravity="center"
+            android:text="@string/button_start_client"
+            android:textColor="#131720"
+            android:textSize="20sp"
+            android:textStyle="bold"/>
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="bottom|center">
+
+        <ImageView
+            android:id="@+id/imageView1"
+            android:layout_width="95dp"
+            android:layout_height="270dp"
+            android:src="@drawable/ic_main_mic"/>
+    </RelativeLayout>
+</LinearLayout>

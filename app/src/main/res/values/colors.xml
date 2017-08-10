@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorSeungheePrimary">#FFFFFF</color>
+    <color name="colorSeungheeGrayPrimary">#40444F</color>
+    <color name="colorPrimary">#272D39</color>
+    <color name="colorPrimaryDark">#303F9F</color>
+    <color name="colorAccent">#ff4081</color>
+    <color name="colorPreferenceCategory">#f07a0b</color>
+
+    <color name="colorBlueAccent">#0092ff</color>
+    <color name="colorYellowPrimary">#ffcc00</color>
+    <color name="colorOrangePrimaryDark">#ff6600</color>
+</resources>

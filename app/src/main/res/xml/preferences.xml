@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory
+        android:title="@string/audio_setting_title">
+
+        <EditTextPreference
+            android:capitalize="words"
+            android:inputType="textCapWords"
+            android:key="station_name"
+            android:maxLines="1"
+            android:selectAllOnFocus="true"
+            android:singleLine="true"
+            android:title="@string/device_name_title"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/rtsp_server_title">
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="rtsp_enabled"
+            android:summary="@string/rtsp_enabled_summary"
+            android:title="@string/rtsp_enabled_title"/>
+        <EditTextPreference
+            android:defaultValue="8086"
+            android:inputType="number"
+            android:key="rtsp_port"
+            android:summary="@string/rtsp_port_summary"
+            android:title="@string/rtsp_port_title"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="@string/more_option_title">
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="notification_enabled"
+            android:summary="@string/notification_summary"
+            android:title="@string/notification_config_title"/>
+        <Preference
+            android:defaultValue="true"
+            android:key="open_source_license"
+            android:title="@string/open_source_license_title"/>
+    </PreferenceCategory>
+
+</PreferenceScreen>
