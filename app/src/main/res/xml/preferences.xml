@@ -17,11 +17,6 @@
 
     <PreferenceCategory
         android:title="@string/rtsp_server_title">
-        <CheckBoxPreference
-            android:defaultValue="true"
-            android:key="rtsp_enabled"
-            android:summary="@string/rtsp_enabled_summary"
-            android:title="@string/rtsp_enabled_title"/>
         <EditTextPreference
             android:defaultValue="8086"
             android:inputType="number"
@@ -35,7 +30,7 @@
         <CheckBoxPreference
             android:defaultValue="true"
             android:key="notification_enabled"
-            android:summary="@string/notification_summary"
+            android:summary="@string/notification_config_summary"
             android:title="@string/notification_config_title"/>
         <Preference
             android:defaultValue="true"

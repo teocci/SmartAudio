@@ -27,6 +27,7 @@ public class Config
     public static final String KEY_STATION_NAME = "station_name";
     public static final String KEY_USED_NAMES = "station_used_names";
     public static final String KEY_STATION_NAME_LIST = "station_name_list";
+    public static final String KEY_FEATURE_GUIDE = "feature_guide";
 
     public static final String SERVICE_TYPE = "_smartmixer._tcp"; // Smart Mixer
     public static final String SERVICE_CHANNEL_NAME = "Channel_00";

@@ -55,6 +55,7 @@ import static com.github.teocci.newsmartaudio.utils.Config.AUDIO_ENCODER;
 import static com.github.teocci.newsmartaudio.utils.Config.KEY_STATION_NAME;
 import static com.github.teocci.newsmartaudio.utils.Config.NOTIFICATION_ENABLED;
 import static com.github.teocci.newsmartaudio.utils.Utilities.getLocalIpAddress;
+import static net.kseek.streaming.utils.Config.KEY_STREAM_AUDIO;
 
 /**
  * SmartAudio basically launches an RTSP server, so clients can then connect to it
@@ -393,7 +394,7 @@ public class SmartAudioActivity extends AppCompatActivity
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
         SessionBuilder.getInstance()
                 .setContext(getApplicationContext())
-                .setAudioEncoder(!settings.getBoolean(Config.KEY_STREAM_AUDIO, true) ? 0 : AUDIO_ENCODER);
+                .setAudioEncoder(!settings.getBoolean(KEY_STREAM_AUDIO, true) ? 0 : AUDIO_ENCODER);
 
         stationName = settings.getString(KEY_STATION_NAME, null);
         if ((stationName == null) || stationName.isEmpty())
