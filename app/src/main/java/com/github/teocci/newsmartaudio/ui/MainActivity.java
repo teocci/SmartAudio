@@ -26,7 +26,6 @@ import com.github.teocci.newsmartaudio.api.CustomRtspServer;
 import com.github.teocci.newsmartaudio.views.CircleButtonView;
 
 import static com.github.teocci.newsmartaudio.utils.Config.KEY_FEATURE_GUIDE;
-import static com.github.teocci.newsmartaudio.utils.Config.NOTIFICATION_ENABLED;
 
 public class MainActivity extends AppCompatActivity
 {
@@ -68,20 +67,6 @@ public class MainActivity extends AppCompatActivity
         });
     }
 
-    private void cleanFeatureGuide()
-    {
-        if (featureGuideHandler != null) {
-            featureGuideHandler.cleanUp();
-
-            featureGuide = false;
-            PreferenceManager.setDefaultValues(getApplicationContext(), R.xml.preferences, false);
-            SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-            final SharedPreferences.Editor editor = settings.edit();
-            editor.putBoolean(KEY_FEATURE_GUIDE, featureGuide);
-            editor.apply();
-        }
-    }
-
     @Override
     protected void onResume()
     {
@@ -100,6 +85,18 @@ public class MainActivity extends AppCompatActivity
         initFeatureMenuGuide(menuItem);
 
         return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item)
+    {
+        switch (item.getItemId()) {
+            case R.id.menu_quit:
+                closeService();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     private void initFeatureMenuGuide(final MenuItem item)
@@ -169,22 +166,8 @@ public class MainActivity extends AppCompatActivity
                 .playOn(item);
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item)
-    {
-        switch (item.getItemId()) {
-            case R.id.menu_quit:
-                closeService();
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
-        }
-    }
-
     private void closeService()
     {
-        // Removes notification
-        if (NOTIFICATION_ENABLED) removeNotification();
         // Kills RTSP server
         this.stopService(new Intent(this, CustomRtspServer.class));
         // Returns to home menu
@@ -194,5 +177,19 @@ public class MainActivity extends AppCompatActivity
     private void removeNotification()
     {
         ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).cancel(0);
+    }
+
+    private void cleanFeatureGuide()
+    {
+        if (featureGuideHandler != null) {
+            featureGuideHandler.cleanUp();
+
+            featureGuide = false;
+            PreferenceManager.setDefaultValues(getApplicationContext(), R.xml.preferences, false);
+            SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+            final SharedPreferences.Editor editor = settings.edit();
+            editor.putBoolean(KEY_FEATURE_GUIDE, featureGuide);
+            editor.apply();
+        }
     }
 }

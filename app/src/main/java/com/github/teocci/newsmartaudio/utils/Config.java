@@ -16,11 +16,6 @@ public class Config
      */
     public static int AUDIO_ENCODER = SessionBuilder.AUDIO_AAC;
 
-    /**
-     * If the notification is enabled in the status bar of the phone.
-     */
-    public static boolean NOTIFICATION_ENABLED = true;
-
     public static int DEFAULT_BT_PORT = 7777;
 
     public static final String KEY_OPERATION_MODE = "operation_mode";

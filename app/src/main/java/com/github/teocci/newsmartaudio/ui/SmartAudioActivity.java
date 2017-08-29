@@ -45,7 +45,6 @@ import com.github.teocci.newsmartaudio.utils.NSDHelper;
 
 import net.kseek.streaming.SessionBuilder;
 import net.kseek.streaming.rtsp.RtspServer;
-import net.kseek.streaming.utils.Config;
 
 import java.io.ByteArrayOutputStream;
 import java.util.List;
@@ -53,8 +52,8 @@ import java.util.Locale;
 
 import static com.github.teocci.newsmartaudio.utils.Config.AUDIO_ENCODER;
 import static com.github.teocci.newsmartaudio.utils.Config.KEY_STATION_NAME;
-import static com.github.teocci.newsmartaudio.utils.Config.NOTIFICATION_ENABLED;
 import static com.github.teocci.newsmartaudio.utils.Utilities.getLocalIpAddress;
+import static net.kseek.streaming.utils.Config.KEY_NOTIFICATION_ENABLED;
 import static net.kseek.streaming.utils.Config.KEY_STREAM_AUDIO;
 
 /**
@@ -81,6 +80,8 @@ public class SmartAudioActivity extends AppCompatActivity
     private List<String> stationNameList;
 
     private final Handler handler = new Handler();
+    private boolean notificationEnabled;
+
 
     private boolean isBTConnected;
     private BluetoothService bluetoothService;
@@ -204,6 +205,7 @@ public class SmartAudioActivity extends AppCompatActivity
         }
     };
 
+    @Override
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
@@ -228,6 +230,7 @@ public class SmartAudioActivity extends AppCompatActivity
         this.startService(new Intent(this, CustomRtspServer.class));
     }
 
+    @Override
     public void onStart()
     {
         super.onStart();
@@ -236,7 +239,7 @@ public class SmartAudioActivity extends AppCompatActivity
         wakeLock.acquire();
 
         // Did the user disabled the notification ?
-        if (NOTIFICATION_ENABLED) {
+        if (notificationEnabled) {
             Intent notificationIntent = new Intent(this, SmartAudioActivity.class);
             PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
                     PendingIntent.FLAG_CANCEL_CURRENT);
@@ -396,6 +399,8 @@ public class SmartAudioActivity extends AppCompatActivity
                 .setContext(getApplicationContext())
                 .setAudioEncoder(!settings.getBoolean(KEY_STREAM_AUDIO, true) ? 0 : AUDIO_ENCODER);
 
+        notificationEnabled = settings.getBoolean(KEY_NOTIFICATION_ENABLED, true);
+
         stationName = settings.getString(KEY_STATION_NAME, null);
         if ((stationName == null) || stationName.isEmpty())
             stationName = Build.MODEL;
@@ -446,8 +451,14 @@ public class SmartAudioActivity extends AppCompatActivity
         String ipAddress;
         if (info != null && info.getNetworkId() > -1) {
             int i = info.getIpAddress();
-            String ip = String.format(Locale.ENGLISH, "%d.%d.%d.%d", i & 0xff, i >> 8 & 0xff, i
-                    >> 16 & 0xff, i >> 24 & 0xff);
+            String ip = String.format(
+                    Locale.ENGLISH,
+                    "%d.%d.%d.%d",
+                    i & 0xff,
+                    i >> 8 & 0xff,
+                    i >> 16 & 0xff,
+                    i >> 24 & 0xff
+            );
             deviceIpValue.setText("rtsp://");
             deviceIpValue.append(ip);
             deviceIpValue.append(":" + rtspServer.getPort());
@@ -470,7 +481,7 @@ public class SmartAudioActivity extends AppCompatActivity
     private void streamingState(int state)
     {
         if (state == 0) {
-            // Not streaming
+            // Not streaming2
             signStreaming.clearAnimation();
             signWifi.clearAnimation();
             signStreaming.setVisibility(View.GONE);
@@ -534,7 +545,7 @@ public class SmartAudioActivity extends AppCompatActivity
     {
         closeBTService();
         // Removes notification
-        if (NOTIFICATION_ENABLED) removeNotification();
+        if (notificationEnabled) removeNotification();
         // Kills RTSP server
         this.stopService(new Intent(this, CustomRtspServer.class));
         // Returns to home menu
