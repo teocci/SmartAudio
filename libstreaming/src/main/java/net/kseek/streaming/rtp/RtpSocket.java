@@ -21,6 +21,7 @@ package net.kseek.streaming.rtp;
 import android.os.SystemClock;
 import android.util.Log;
 
+import net.kseek.streaming.ntp.NTPClient;
 import net.kseek.streaming.rtcp.SenderReport;
 
 import java.io.IOException;
@@ -88,6 +89,8 @@ public class RtpSocket implements Runnable {
 		mAverageBitrate = new AverageBitrate();
 		mTransport = TRANSPORT_UDP;
 		mTcpHeader = new byte[] {'$',0,0,0};
+
+		NTPClient.getInstance();
 		
 		resetFifo();
 
@@ -140,6 +143,7 @@ public class RtpSocket implements Runnable {
 	/** Closes the underlying socket. */
 	public void close() {
 		mSocket.close();
+		NTPClient.getInstance().closeNTPConnection();
 	}
 
 	/** Sets the SSRC of the stream. */
@@ -207,7 +211,6 @@ public class RtpSocket implements Runnable {
 			mSocket.getLocalPort(),
 			mReport.getLocalPort()
 		};
-		
 	}
 	
 	/** 
@@ -450,7 +453,5 @@ public class RtpSocket implements Runnable {
 			long l = (long)m-2000000;
 			return l>0 ? l : 0;
 		}
-
 	}
-
 }

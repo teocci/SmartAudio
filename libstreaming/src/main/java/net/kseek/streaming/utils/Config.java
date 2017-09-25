@@ -8,6 +8,12 @@ package net.kseek.streaming.utils;
 
 public class Config
 {
+//    public final static String NTP_SERVER_HOST = "time.bora.net";
+//    public final static int NTP_SEVER_PORT = 123;
+
+    public final static String NTP_SERVER_HOST = "192.168.1.125";
+    public final static int NTP_SEVER_PORT = 50780;
+
     public final static String KEY_NOTIFICATION_ENABLED = "notification_enabled";
 
     public final static String KEY_DEVICE_NAME = "device_name";

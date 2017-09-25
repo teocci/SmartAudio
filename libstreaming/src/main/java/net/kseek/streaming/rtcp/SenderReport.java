@@ -18,8 +18,11 @@
 
 package net.kseek.streaming.rtcp;
 
-import static net.kseek.streaming.rtp.RtpSocket.TRANSPORT_TCP;
-import static net.kseek.streaming.rtp.RtpSocket.TRANSPORT_UDP;
+import android.os.SystemClock;
+
+import net.kseek.streaming.ntp.NTPClient;
+
+import org.apache.commons.net.ntp.TimeStamp;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -27,7 +30,8 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 
-import android.os.SystemClock;
+import static net.kseek.streaming.rtp.RtpSocket.TRANSPORT_TCP;
+import static net.kseek.streaming.rtp.RtpSocket.TRANSPORT_UDP;
 
 /**
  * Implementation of Sender Report RTCP packets.
@@ -50,7 +54,6 @@ public class SenderReport {
 	private byte mTcpHeader[];
 
 	public SenderReport(int ssrc) throws IOException {
-		super();
 		this.mSSRC = ssrc;
 	}
 	
@@ -127,9 +130,11 @@ public class SenderReport {
 		if (interval>0 && delta>=interval) {
 			// We send a Sender Report
 			send(System.nanoTime(), rtpts);
+//			send(NTPClient.getInstance().getNTPTime(), rtpts);
+//			Log.e("SenderReport", "NTPClient: " + NTPClient.getInstance().getNTPTime() +
+//					" System.nanoTime(): " + System.nanoTime());
 			delta = 0;
 		}
-		
 	}
 
 	public void setSSRC(int ssrc) {
@@ -215,6 +220,31 @@ public class SenderReport {
 			}
 		}
 	}
-		
-	
+
+	/**
+	 * Sends the RTCP packet over the network.
+	 *
+	 * @param ntpts
+	 *            the NTP timestamp.
+	 * @param rtpts
+	 *            the RTP timestamp.
+	 */
+	private void send(TimeStamp ntpts, long rtpts) throws IOException {
+		long hb = ntpts.getSeconds();
+		long lb = ntpts.getSeconds();
+		setLong(hb, 8, 12);
+		setLong(lb, 12, 16);
+		setLong(rtpts, 16, 20);
+		if (mTransport == TRANSPORT_UDP) {
+			upack.setLength(PACKET_LENGTH);
+			usock.send(upack);
+		} else {
+			synchronized (mOutputStream) {
+				try {
+					mOutputStream.write(mTcpHeader);
+					mOutputStream.write(mBuffer, 0, PACKET_LENGTH);
+				} catch (Exception e) {}
+			}
+		}
+	}
 }
