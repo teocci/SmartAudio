@@ -143,13 +143,13 @@ public class H264Packetizer extends AbstractPacketizer implements Runnable {
 		int sum = 1, len = 0, type;
 
 		if (streamType == 0) {
-			// NAL units are preceeded by their length, we parse the length
+			// NAL units are preceded by their length, we parse the length
 			fill(header,0,5);
 			ts += delay;
 			naluLength = header[3]&0xFF | (header[2]&0xFF)<<8 | (header[1]&0xFF)<<16 | (header[0]&0xFF)<<24;
 			if (naluLength>100000 || naluLength<0) resync();
 		} else if (streamType == 1) {
-			// NAL units are preceeded with 0x00000001
+			// NAL units are preceded with 0x00000001
 			fill(header,0,5);
 			ts = ((MediaCodecInputStream)is).getLastBufferInfo().presentationTimeUs*1000L;
 			//ts += delay;

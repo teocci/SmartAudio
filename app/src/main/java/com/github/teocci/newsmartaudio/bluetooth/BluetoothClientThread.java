@@ -2,7 +2,6 @@ package com.github.teocci.newsmartaudio.bluetooth;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothSocket;
-import android.util.Log;
 import android.widget.Toast;
 
 import com.github.teocci.newsmartaudio.R;
@@ -40,9 +39,8 @@ public class BluetoothClientThread extends Thread
             inputStream = socket.getInputStream();
             outputStream = socket.getOutputStream();
         } catch (Exception e) {
-            Log.e(TAG, e.getMessage());
+            LogHelper.e(TAG, e.getMessage());
         }
-
 
         callerActivity.runOnUiThread(new Runnable()
         {
@@ -59,11 +57,11 @@ public class BluetoothClientThread extends Thread
     {
         byte[] buf = new byte[1024];
         while (true) {
-            Log.d(TAG, "socket read");
+            LogHelper.d(TAG, "socket read");
             try {
                 inputStream.read(buf);
             } catch (Exception e) {
-                Log.e(TAG, e.getMessage());
+                LogHelper.e(TAG, e.getMessage());
                 connectionLost();
                 break;
             }
@@ -73,10 +71,10 @@ public class BluetoothClientThread extends Thread
     public void write(byte[] buf)
     {
         try {
-            Log.d(TAG, "socket send");
+            LogHelper.d(TAG, "socket send");
             outputStream.write(buf);
         } catch (Exception e) {
-            Log.e(TAG, e.getMessage());
+            LogHelper.e(TAG, e.getMessage());
         }
     }
 
@@ -85,7 +83,7 @@ public class BluetoothClientThread extends Thread
         try {
             bluetoothSocket.close();
         } catch (Exception e) {
-            Log.e(TAG, e.getMessage());
+            LogHelper.e(TAG, e.getMessage());
         }
     }
 

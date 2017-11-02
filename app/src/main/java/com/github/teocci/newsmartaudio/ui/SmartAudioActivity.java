@@ -23,7 +23,6 @@ import android.os.PowerManager;
 import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -51,7 +50,10 @@ import java.util.List;
 import java.util.Locale;
 
 import static com.github.teocci.newsmartaudio.utils.Config.AUDIO_ENCODER;
+import static com.github.teocci.newsmartaudio.utils.Config.CLIENT_MODE;
+import static com.github.teocci.newsmartaudio.utils.Config.COMMAND_SEPARATOR;
 import static com.github.teocci.newsmartaudio.utils.Config.KEY_STATION_NAME;
+import static com.github.teocci.newsmartaudio.utils.Config.PARAMETER_SEPARATOR;
 import static com.github.teocci.newsmartaudio.utils.Utilities.getLocalIpAddress;
 import static net.kseek.streaming.utils.Config.KEY_NOTIFICATION_ENABLED;
 import static net.kseek.streaming.utils.Config.KEY_STREAM_AUDIO;
@@ -63,8 +65,6 @@ import static net.kseek.streaming.utils.Config.KEY_STREAM_AUDIO;
 public class SmartAudioActivity extends AppCompatActivity
 {
     static final public String TAG = LogHelper.makeLogTag(SmartAudioActivity.class);
-
-    public static final String CLIENT_MODE = "client_mode";
 
     private TextView currentStationName, deviceIpValue, deviceIpTitle, version, signWifi, textBitrate, controlText;
     private LinearLayout signInformation, signStreaming;
@@ -82,8 +82,6 @@ public class SmartAudioActivity extends AppCompatActivity
     private final Handler handler = new Handler();
     private boolean notificationEnabled;
 
-
-    private boolean isBTConnected;
     private BluetoothService bluetoothService;
     private ControlConnector controlConnector;
     private ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -91,6 +89,21 @@ public class SmartAudioActivity extends AppCompatActivity
 
     private final static int REQUEST_ENABLE_BT = 1;
     private final static int REQUEST_CONNECT_DEVICE = 2;
+
+    private ServiceConnection rtspServiceConnection = new ServiceConnection()
+    {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service)
+        {
+            rtspServer = ((RtspServer.LocalBinder) service).getService();
+            rtspServer.addCallbackListener(rtspCallbackListener);
+            rtspServer.start();
+            update();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {}
+    };
 
     private RtspServer.CallbackListener rtspCallbackListener = new RtspServer.CallbackListener()
     {
@@ -126,20 +139,49 @@ public class SmartAudioActivity extends AppCompatActivity
 
     };
 
-    private ServiceConnection rtspServiceConnection = new ServiceConnection()
+    private ControlListener controlListener = new ControlListener()
     {
         @Override
-        public void onServiceConnected(ComponentName name, IBinder service)
+        public void receiveCommand(String str)
         {
-            rtspServer = ((RtspServer.LocalBinder) service).getService();
-            rtspServer.addCallbackListener(rtspCallbackListener);
-            rtspServer.start();
-            update();
+            String[] commands = str.split(COMMAND_SEPARATOR);
+            switch (commands[0]) {
+                case "BT":
+                    sendCommandToBT(commands[1]);
+                    break;
+                case "P":
+                    break;
+                case "SET":
+                    String[] parameter = commands[1].split(PARAMETER_SEPARATOR);
+                    switch (parameter[0]) {
+                        case "NAME":
+                            // change de name
+                            break;
+                        case "ZOOM":
+                            int zoom = Integer.valueOf(parameter[1]);
+
+                            if (rtspServer != null && rtspServer.isStreaming())
+                                rtspServer.setZoom(zoom);
+                            break;
+                    }
+                    break;
+                case "SETOK":
+                    break;
+            }
         }
 
         @Override
-        public void onServiceDisconnected(ComponentName name) {}
-
+        public void connectionSetting(final boolean isConnected)
+        {
+//            adapter.getHandsetFragment().controlTextUpdate(isConnected);
+            if (isConnected && controlConnector != null) {
+                if (bluetoothService.isServiceConnected()) {
+                    controlConnector.write("STATE;BT:1;\n");
+                } else {
+                    controlConnector.write("STATE;BT:0;\n");
+                }
+            }
+        }
     };
 
     // BroadcastReceiver that detects wifi state changes
@@ -167,40 +209,6 @@ public class SmartAudioActivity extends AppCompatActivity
                 handler.postDelayed(updateBitrate, 1000);
             } else {
                 textBitrate.setText("0 kbps");
-            }
-        }
-    };
-
-    private ControlListener bluetoothListener = new ControlListener()
-    {
-        @Override
-        public void receive(String str)
-        {
-            if (!isBTConnected) return;
-
-            try {
-                outputStream.write(str.getBytes());
-
-                byte[] buf;
-                buf = outputStream.toByteArray();
-                bluetoothService.write(buf);
-
-                outputStream.reset();
-            } catch (Exception e) {
-                Log.e(TAG, e.getMessage());
-            }
-        }
-
-        @Override
-        public void connectionSetting(final boolean isConnected)
-        {
-//            adapter.getHandsetFragment().controlTextUpdate(isConnected);
-            if (isConnected && controlConnector != null) {
-                if (isBTConnected) {
-                    controlConnector.write("STATE;BT:1;");
-                } else {
-                    controlConnector.write("STATE;BT:0;");
-                }
             }
         }
     };
@@ -266,16 +274,6 @@ public class SmartAudioActivity extends AppCompatActivity
     }
 
     @Override
-    public void onStop()
-    {
-        super.onStop();
-        // A WakeLock should only be released when isHeld() is true !
-        if (wakeLock.isHeld()) wakeLock.release();
-        if (rtspServer != null) rtspServer.removeCallbackListener(rtspCallbackListener);
-        unbindService(rtspServiceConnection);
-    }
-
-    @Override
     public void onResume()
     {
         super.onResume();
@@ -288,6 +286,16 @@ public class SmartAudioActivity extends AppCompatActivity
                 wifiStateReceiver,
                 new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION)
         );
+    }
+
+    @Override
+    public void onStop()
+    {
+        super.onStop();
+        // A WakeLock should only be released when isHeld() is true !
+        if (wakeLock.isHeld()) wakeLock.release();
+        if (rtspServer != null) rtspServer.removeCallbackListener(rtspCallbackListener);
+        unbindService(rtspServiceConnection);
     }
 
     @Override
@@ -357,6 +365,23 @@ public class SmartAudioActivity extends AppCompatActivity
         }
     }
 
+    private void sendCommandToBT(String str)
+    {
+        if (!bluetoothService.isServiceConnected()) return;
+
+        try {
+            outputStream.write(str.getBytes());
+
+            byte[] buffer;
+            buffer = outputStream.toByteArray();
+            bluetoothService.write(buffer);
+
+            outputStream.reset();
+        } catch (Exception e) {
+            LogHelper.e(TAG, e.getMessage());
+        }
+    }
+
     private void initUserInterface()
     {
         currentStationName = (TextView) findViewById(R.id.current_station_name);
@@ -387,7 +412,7 @@ public class SmartAudioActivity extends AppCompatActivity
 
     private void initControlConnector()
     {
-        controlConnector = new ControlConnector(bluetoothListener);
+        controlConnector = new ControlConnector(controlListener);
         controlConnector.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
@@ -513,7 +538,6 @@ public class SmartAudioActivity extends AppCompatActivity
 
     public void successConnection()
     {
-        isBTConnected = true;
         if (controlConnector != null)
             controlConnector.write("STATE;BT:1;");
 //        runOnUiThread(new Runnable()
@@ -528,7 +552,6 @@ public class SmartAudioActivity extends AppCompatActivity
 
     public void stopConnection()
     {
-        isBTConnected = false;
         if (controlConnector != null)
             controlConnector.write("STATE;BT:0;");
 //        runOnUiThread(new Runnable()

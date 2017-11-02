@@ -460,16 +460,16 @@ public class Session {
 				postError(ERROR_UNKNOWN_HOST, id, e);
 				throw e;
 			} catch (CameraInUseException e) {
-				postError(ERROR_CAMERA_ALREADY_IN_USE , id, e);
+				postError(ERROR_CAMERA_ALREADY_IN_USE, id, e);
 				throw e;
 			} catch (StorageUnavailableException e) {
-				postError(ERROR_STORAGE_NOT_READY , id, e);
+				postError(ERROR_STORAGE_NOT_READY, id, e);
 				throw e;
 			} catch (ConfNotSupportedException e) {
-				postError(ERROR_CONFIGURATION_NOT_SUPPORTED , id, e);
+				postError(ERROR_CONFIGURATION_NOT_SUPPORTED, id, e);
 				throw e;
 			} catch (InvalidSurfaceException e) {
-				postError(ERROR_INVALID_SURFACE , id, e);
+				postError(ERROR_INVALID_SURFACE, id, e);
 				throw e;
 			} catch (IOException e) {
 				postError(ERROR_OTHER, id, e);
@@ -602,6 +602,34 @@ public class Session {
 					} catch (RuntimeException e) {
 						postError(ERROR_OTHER, STREAM_VIDEO, e);
 					}
+				}
+			}
+		});
+	}
+
+	/**
+	 * Asynchronously zoom the camera preview.
+	 */
+	public void handleZoom(final int newZoom) {
+		handler.post(new Runnable() {
+			@Override
+			public void run() {
+				if (videoStream != null) {
+					videoStream.handleZoom(newZoom);
+				}
+			}
+		});
+	}
+
+	/**
+	 * Asynchronously zoom the camera preview.
+	 */
+	public void handleFocus(final float x, final float y) {
+		handler.post(new Runnable() {
+			@Override
+			public void run() {
+				if (videoStream != null) {
+					videoStream.handleFocus(x, y);
 				}
 			}
 		});

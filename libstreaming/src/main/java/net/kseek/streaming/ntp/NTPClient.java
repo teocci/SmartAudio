@@ -1,5 +1,7 @@
 package net.kseek.streaming.ntp;
 
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.util.Log;
 
 import org.apache.commons.net.ntp.NTPUDPClient;
@@ -22,7 +24,12 @@ import static net.kseek.streaming.utils.Config.NTP_SEVER_PORT;
 
 public class NTPClient
 {
-    static final public String TAG = NTPClient.class.getSimpleName();
+    public static final String TAG = NTPClient.class.getSimpleName();
+
+    private final static int INTERVAL = 1000 * 61; //61 seconds
+
+    private Long offsetValue;
+    private Long delayValue;
 
     private static NTPClient instance;
 
@@ -30,8 +37,32 @@ public class NTPClient
 
     private static InetAddress ntpServer;
 
-    private NTPClient() {
+    private Handler handler;
+    private HandlerThread handlerThread;
+
+    private Thread handlerTask = new Thread(new Runnable()
+    {
+        @Override
+        public void run()
+        {
+            updateNTPTime();
+            handler.postDelayed(handlerTask, INTERVAL);
+        }
+    });
+
+    private NTPClient()
+    {
         openNTPConnection();
+    }
+
+    void startRepeatingTask()
+    {
+        handlerTask.start();
+    }
+
+    void stopRepeatingTask()
+    {
+        handler.removeCallbacks(handlerTask);
     }
 
     public static NTPClient getInstance()
@@ -48,12 +79,16 @@ public class NTPClient
 
     public boolean openNTPConnection()
     {
+        handlerThread = new HandlerThread(TAG);
+        handlerThread.start();
+        handler = new Handler(handlerThread.getLooper());
         client = new NTPUDPClient();
         // We want to timeout if a response takes longer than 10 seconds
         client.setDefaultTimeout(5000);
         try {
             client.open();
             ntpServer = InetAddress.getByName(NTP_SERVER_HOST);
+            startRepeatingTask();
         } catch (SocketException | UnknownHostException e) {
             e.printStackTrace();
         }
@@ -61,26 +96,36 @@ public class NTPClient
         return client.isOpen();
     }
 
-    public TimeStamp getNTPTime()
+    private void updateNTPTime()
     {
         if (client != null && client.isOpen()) {
             try {
                 TimeInfo info = client.getTime(ntpServer, NTP_SEVER_PORT);
                 info.computeDetails(); // compute offset/delay if not already done
-//                Long offsetValue = info.getOffset();
-//                Long delayValue = info.getDelay();
-//                String delay = (delayValue == null) ? "N/A" : delayValue.toString();
-//                String offset = (offsetValue == null) ? "N/A" : offsetValue.toString();
-//
-//                Log.e(TAG, " Roundtrip delay(ms) = " + delay
-//                        + ", clock offset(ms) = " + offset); // offset in ms
 
-                return TimeStamp.getNtpTime(TimeStamp.getCurrentTime().getTime() +
-                        (info.getOffset() != null ? info.getOffset() : 0) +
-                        (info.getDelay() != null ? info.getDelay() : 0));
+                offsetValue = info.getOffset();
+                delayValue = info.getDelay();
+                String delay = (delayValue == null) ? "N/A" : delayValue.toString();
+                String offset = (offsetValue == null) ? "N/A" : offsetValue.toString();
+
+                Log.e(TAG, " Roundtrip delay(ms) = " + delay
+                        + ", clock offset(ms) = " + offset); // offset in ms
+
+//                return TimeStamp.getNtpTime(TimeStamp.getCurrentTime().getTime() +
+//                        (info.getOffset() != null ? info.getOffset() : 0) +
+//                        (info.getDelay() != null ? info.getDelay() : 0));
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    public TimeStamp getNTPTime()
+    {
+        if (client != null && client.isOpen()) {
+            return TimeStamp.getNtpTime(TimeStamp.getCurrentTime().getTime() +
+                    (offsetValue != null ? offsetValue : 0) +
+                    (delayValue != null ? delayValue : 0));
         }
 
         return TimeStamp.getCurrentTime();
@@ -88,6 +133,7 @@ public class NTPClient
 
     public void closeNTPConnection()
     {
+        stopRepeatingTask();
         if (client != null) {
             client.close();
         }

@@ -49,6 +49,7 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -84,6 +85,8 @@ public abstract class VideoStream extends MediaStream
     protected int encoderColorFormat;
     protected int cameraImageFormat;
     protected int maxFps = 0;
+
+    protected int currentZoom;
 
     /**
      * Don't use this class directly.
@@ -145,6 +148,57 @@ public abstract class VideoStream extends MediaStream
         flashEnabled = false;
         if (previewing) startPreview();
         if (streaming) start();
+    }
+
+
+    public void setZoom(int newZoom)
+    {
+        int zoom = 0;
+        if (newZoom > currentZoom) {
+            // zoom in
+            zoom = 1;
+        } else if (newZoom < currentZoom) {
+            // zoom out
+            zoom = -1;
+        }
+        currentZoom = newZoom;
+        handleZoom(zoom);
+    }
+
+    public void handleZoom(int newZoom)
+    {
+        Parameters parameters = camera.getParameters();
+        int maxZoom = parameters.getMaxZoom();
+        int zoom = parameters.getZoom();
+        if (newZoom > 0) {
+            // zoom in
+            if (zoom < maxZoom)
+                zoom++;
+        } else if (newZoom < 0) {
+            // zoom out
+            if (zoom > 0)
+                zoom--;
+        }
+
+        parameters.setZoom(zoom);
+        camera.setParameters(parameters);
+    }
+
+    public void handleFocus(float x, float y)
+    {
+        Parameters parameters = camera.getParameters();
+
+        List<String> supportedFocusModes = parameters.getSupportedFocusModes();
+        if (supportedFocusModes != null && supportedFocusModes.contains(Camera.Parameters.FOCUS_MODE_AUTO)) {
+            camera.autoFocus(new Camera.AutoFocusCallback()
+            {
+                @Override
+                public void onAutoFocus(boolean b, Camera camera)
+                {
+                    // currently set to auto-focus on single touch
+                }
+            });
+        }
     }
 
     /**

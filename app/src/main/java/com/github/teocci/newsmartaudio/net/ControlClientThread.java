@@ -20,14 +20,14 @@ public class ControlClientThread extends AsyncTask<Void, Void, Void>
 {
     private final String TAG = LogHelper.makeLogTag(ControlClientThread.class);
 
-    private ControlListener bluetoothListener;
+    private ControlListener controlListener;
     private Socket clientSocket;
     private BufferedReader input;
     private BufferedWriter output;
 
-    public ControlClientThread(ControlListener bluetoothListener, Socket socket)
+    public ControlClientThread(ControlListener controlListener, Socket socket)
     {
-        this.bluetoothListener = bluetoothListener;
+        this.controlListener = controlListener;
         this.clientSocket = socket;
 
         try {
@@ -42,8 +42,8 @@ public class ControlClientThread extends AsyncTask<Void, Void, Void>
     protected Void doInBackground(Void... params)
     {
         try {
-            if (this.bluetoothListener != null) {
-                this.bluetoothListener.connectionSetting(true);
+            if (this.controlListener != null) {
+                this.controlListener.connectionSetting(true);
             }
 
             while (!Thread.currentThread().isInterrupted()) {
@@ -53,25 +53,9 @@ public class ControlClientThread extends AsyncTask<Void, Void, Void>
                     Thread.currentThread().interrupt();
                     break;
                 }
-                String[] msgs = str.split(";");
-                switch (msgs[0]) {
-                    case "BT":
-                        if (this.bluetoothListener != null) {
-                            bluetoothListener.receive(msgs[1]);
-                        }
-                        break;
-                    case "P":
-                        break;
-                    case "SET":
-                        String[] tmp = msgs[1].split(":");
-                        switch (tmp[0]) {
-                            case "NAME":
-                                // change de name`
-                                break;
-                        }
-                        break;
-                    case "SETOK":
-                        break;
+
+                if (this.controlListener != null) {
+                    controlListener.receiveCommand(str);
                 }
             }
         } catch (Exception e) {
@@ -87,8 +71,8 @@ public class ControlClientThread extends AsyncTask<Void, Void, Void>
             if (clientSocket != null && !clientSocket.isClosed()) {
                 clientSocket.close();
             }
-            if (this.bluetoothListener != null) {
-                bluetoothListener.connectionSetting(false);
+            if (this.controlListener != null) {
+                controlListener.connectionSetting(false);
             }
         } catch (Exception e) {
             if (e.getMessage() != null)
@@ -99,7 +83,9 @@ public class ControlClientThread extends AsyncTask<Void, Void, Void>
     public void write(String data)
     {
         try {
+            LogHelper.e(TAG, "Control send : " + data);
             output.write(data);
+            output.flush();
         } catch (Exception e) {
             LogHelper.e(TAG, e.getMessage());
         }

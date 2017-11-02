@@ -44,9 +44,9 @@ public class ControlConnector extends AsyncTask<Void, Void, Void>
             serverSocket.bind(new InetSocketAddress(DEFAULT_BT_PORT));
 
             while (!Thread.currentThread().isInterrupted()) {
-                LogHelper.d(TAG, "connect");
+                LogHelper.i(TAG, "connect");
                 Socket client = serverSocket.accept();
-                LogHelper.d(TAG, "S: Receiving...");
+                LogHelper.i(TAG, "S: Receiving...");
 
                 clientThread = new ControlClientThread(bluetoothListener, client);
                 clientThread.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
@@ -66,7 +66,8 @@ public class ControlConnector extends AsyncTask<Void, Void, Void>
 
     public void write(String data)
     {
-        clientThread.write(data);
+        if ( clientThread != null )
+            clientThread.write(data);
     }
 
     public void close()

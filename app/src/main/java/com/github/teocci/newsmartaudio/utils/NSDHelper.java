@@ -13,7 +13,8 @@ import java.util.TreeMap;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static com.github.teocci.newsmartaudio.ui.SmartAudioActivity.CLIENT_MODE;
+import static com.github.teocci.newsmartaudio.utils.Config.CLIENT_MODE;
+import static com.github.teocci.newsmartaudio.utils.Config.SERVICE_APP_NAME;
 import static com.github.teocci.newsmartaudio.utils.Config.SERVICE_CHANNEL_NAME;
 import static com.github.teocci.newsmartaudio.utils.Config.SERVICE_NAME_SEPARATOR;
 import static com.github.teocci.newsmartaudio.utils.Config.SERVICE_TYPE;
@@ -78,13 +79,15 @@ public class NSDHelper
         try {
             // Android NSD implementation is very unstable when services
             // registers with the same name.
-            // Therefore, we will use "SERVICE_NAME:STATION_NAME:DEVICE_ID:".
+            // Therefore, we will use "SERVICE_CHANNEL_NAME:STATION_NAME:DEVICE_ID:".
             final NsdServiceInfo serviceInfo = new NsdServiceInfo();
-            final String serviceName = Base64.encodeToString(SERVICE_CHANNEL_NAME.getBytes(), (Base64.NO_WRAP)) +
+            final String serviceName = Base64.encodeToString(SERVICE_APP_NAME.getBytes(), (Base64.NO_WRAP)) +
                     SERVICE_NAME_SEPARATOR +
-                    Base64.encodeToString(stationName.getBytes(), (Base64.NO_WRAP)) +
+                    Base64.encodeToString(SERVICE_CHANNEL_NAME.getBytes(), (Base64.NO_WRAP)) +
                     SERVICE_NAME_SEPARATOR +
                     deviceID +
+                    SERVICE_NAME_SEPARATOR +
+                    Base64.encodeToString(stationName.getBytes(), (Base64.NO_WRAP)) +
                     SERVICE_NAME_SEPARATOR;
 
             serviceInfo.setServiceType(SERVICE_TYPE);
@@ -137,8 +140,8 @@ public class NSDHelper
 
                     final String[] ss = serviceName.split(SERVICE_NAME_SEPARATOR);
 
-                    final String channelName = new String(Base64.decode(ss[0], 0));
-                    final String stationName = new String(Base64.decode(ss[1], 0));
+                    final String channelName = new String(Base64.decode(ss[1], 0));
+                    final String stationName = new String(Base64.decode(ss[3], 0));
 
                     LogHelper.e(TAG, "initDiscoveryListener.onServiceFound-> " + channelName + ": " + nsdServiceInfo);
                     LogHelper.e(TAG, "initDiscoveryListener.onServiceFound-> serviceName: " + serviceName);

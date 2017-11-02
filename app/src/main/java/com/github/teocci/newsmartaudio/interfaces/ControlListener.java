@@ -7,7 +7,7 @@ package com.github.teocci.newsmartaudio.interfaces;
  */
 public interface ControlListener
 {
-    void receive(String str);
+    void receiveCommand(String str);
 
     void connectionSetting(boolean isConnected);
 }

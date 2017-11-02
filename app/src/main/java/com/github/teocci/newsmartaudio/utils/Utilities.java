@@ -62,6 +62,11 @@ public class Utilities
         return m1.matches();
     }
 
+    public static boolean isIpv4Address(InetAddress inetAddress)
+    {
+        return isIpv4Address(inetAddress.getHostAddress());
+    }
+
     public static boolean isIpv6Address(String ipAddress)
     {
         Matcher m1 = Utilities.VALID_IPV6_PATTERN.matcher(ipAddress);
@@ -109,14 +114,15 @@ public class Utilities
             for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en
                     .hasMoreElements(); ) {
                 NetworkInterface intf = en.nextElement();
-                for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr
-                        .hasMoreElements(); ) {
-                    InetAddress inetAddress = enumIpAddr.nextElement();
-                    if (inetAddress.isSiteLocalAddress() &&
-                            !inetAddress.isAnyLocalAddress() &&
-                            (!removeIPv6 || isIpv4Address(inetAddress.getHostAddress().toString()
-                            ))) {
-                        return inetAddress.getHostAddress().toString();
+                if (intf.getName().contains("wlan")) {
+                    for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
+                        InetAddress inetAddress = enumIpAddr.nextElement();
+                        if (inetAddress.isSiteLocalAddress() &&
+                                !inetAddress.isLoopbackAddress() &&
+                                !inetAddress.isAnyLocalAddress() &&
+                                (!removeIPv6 || isIpv4Address(inetAddress))) {
+                            return inetAddress.getHostAddress();
+                        }
                     }
                 }
             }

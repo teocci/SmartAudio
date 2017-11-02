@@ -26,5 +26,11 @@ public class Config
 
     public static final String SERVICE_TYPE = "_smartmixer._tcp"; // Smart Mixer
     public static final String SERVICE_CHANNEL_NAME = "Channel_00";
+    public static final String SERVICE_APP_NAME = "SmartAudio";
     public static final String SERVICE_NAME_SEPARATOR = ":";
+
+    public static final String CLIENT_MODE = "client_mode";
+
+    public static final String COMMAND_SEPARATOR = ";";
+    public static final String PARAMETER_SEPARATOR = ":";
 }

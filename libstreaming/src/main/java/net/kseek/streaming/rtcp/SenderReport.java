@@ -35,6 +35,42 @@ import static net.kseek.streaming.rtp.RtpSocket.TRANSPORT_UDP;
 
 /**
  * Implementation of Sender Report RTCP packets.
+ * <p>
+ * .0               1               2               3
+ * .0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7 0 1 2 3 4 5 6 7
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |V=2|P|    RC   |   PT=SR=200   |             length            | header
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                         SSRC of sender                        |
+ * +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+ * |              NTP timestamp, most significant word             | sender
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ info
+ * |             NTP timestamp, least significant word             |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                         RTP timestamp                         |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                     sender's packet count                     |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                      sender's octet count                     |
+ * +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+ * |                 SSRC_1 (SSRC of first source)                 | report
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ block
+ * | fraction lost |       cumulative number of packets lost       |   1
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |           extended highest sequence number received           |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                      inter-arrival jitter                     |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                         last SR (LSR)                         |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * |                   delay since last SR (DLSR)                  |
+ * +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+ * |                 SSRC_2 (SSRC of second source)                | report
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ block
+ * :                               ...                             :   2
+ * +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+ * |                  profile-specific extensions                  |
+ * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
 public class SenderReport {
 
@@ -62,13 +98,6 @@ public class SenderReport {
 		mTransport = TRANSPORT_UDP;
 		mTcpHeader = new byte[] {'$',0,0,PACKET_LENGTH};
 		
-		/*							     Version(2)  Padding(0)					 					*/
-		/*									 ^		  ^			PT = 0	    						*/
-		/*									 |		  |				^								*/
-		/*									 | --------			 	|								*/
-		/*									 | |---------------------								*/
-		/*									 | ||													*/
-		/*									 | ||													*/
 		mBuffer[0] = (byte) Integer.parseInt("10000000",2);
 
 		/* Packet Type PT */
@@ -129,8 +158,8 @@ public class SenderReport {
 		oldnow = now;
 		if (interval>0 && delta>=interval) {
 			// We send a Sender Report
-			send(System.nanoTime(), rtpts);
-//			send(NTPClient.getInstance().getNTPTime(), rtpts);
+//			send(System.nanoTime(), rtpts);
+			send(NTPClient.getInstance().getNTPTime(), rtpts);
 //			Log.e("SenderReport", "NTPClient: " + NTPClient.getInstance().getNTPTime() +
 //					" System.nanoTime(): " + System.nanoTime());
 			delta = 0;

@@ -10,7 +10,8 @@ import com.github.teocci.newsmartaudio.utils.NSDHelper;
 
 import net.kseek.streaming.rtsp.RtspServer;
 
-import static com.github.teocci.newsmartaudio.ui.SmartAudioActivity.CLIENT_MODE;
+
+import static com.github.teocci.newsmartaudio.utils.Config.CLIENT_MODE;
 import static com.github.teocci.newsmartaudio.utils.Config.KEY_OPERATION_MODE;
 import static com.github.teocci.newsmartaudio.utils.Config.KEY_STATION_NAME;
 

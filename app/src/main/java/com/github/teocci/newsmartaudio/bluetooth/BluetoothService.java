@@ -5,7 +5,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
-import android.util.Log;
 
 import com.github.teocci.newsmartaudio.ui.BluetoothListActivity;
 import com.github.teocci.newsmartaudio.utils.LogHelper;
@@ -101,7 +100,6 @@ public class BluetoothService
 
     public void write(byte[] out)
     {
-        Log.d(TAG, "write");
         BluetoothClientThread clientConnected;
         synchronized (this) {
             if (state != STATE_CONNECTED)
@@ -114,6 +112,11 @@ public class BluetoothService
     protected synchronized void setState(int state)
     {
         this.state = state;
+    }
+
+    protected synchronized int getState()
+    {
+        return this.state;
     }
 
     public void enableBluetooth()
@@ -152,11 +155,20 @@ public class BluetoothService
         return bluetoothAdapter;
     }
 
-    public BluetoothConnectThread getBluetoothConnectThread() {
+    public BluetoothConnectThread getBluetoothConnectThread()
+    {
         return connectThread;
     }
 
-    public void setBluetoothConnectThread(BluetoothConnectThread connectThread) {
+    public boolean isServiceConnected()
+    {
+        synchronized (this) {
+            return state == STATE_CONNECTED;
+        }
+    }
+
+    public void setBluetoothConnectThread(BluetoothConnectThread connectThread)
+    {
         this.connectThread = connectThread;
     }
 

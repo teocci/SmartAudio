@@ -33,6 +33,7 @@ import net.kseek.streaming.Session;
 import net.kseek.streaming.SessionBuilder;
 import net.kseek.streaming.utils.Config;
 import net.kseek.streaming.video.VideoQuality;
+import net.kseek.streaming.video.VideoStream;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -237,7 +238,23 @@ public class RtspServer extends Service {
 		}
 		return false;
 	}
-	
+
+	public void handleZoom(int newZoom) {
+		for ( Session session : sessions.keySet() ) {
+			if (session != null && session.isStreaming()) {
+				session.getVideoTrack().handleZoom(newZoom);
+			}
+		}
+	}
+
+	public void setZoom(int newZoom) {
+		for ( Session session : sessions.keySet() ) {
+			if (session != null && session.isStreaming()) {
+				session.getVideoTrack().setZoom(newZoom);
+			}
+		}
+	}
+
 	public boolean isEnabled() {
 		return enabled;
 	}
