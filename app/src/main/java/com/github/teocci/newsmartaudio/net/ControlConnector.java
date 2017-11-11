@@ -70,6 +70,21 @@ public class ControlConnector extends AsyncTask<Void, Void, Void>
             clientThread.write(data);
     }
 
+    public void sendBTConnected(boolean btConnected)
+    {
+        write(btConnected ? "STATE;BT:1;\n" : "STATE;BT:0;\n");
+    }
+
+    public void sendSetOk(String name)
+    {
+        write("SETOK;" + name + ";\n");
+    }
+
+    public void sendBye()
+    {
+        write("BYE;\n");
+    }
+
     public void close()
     {
         try {

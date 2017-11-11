@@ -9,6 +9,8 @@ import android.content.Intent;
 import com.github.teocci.newsmartaudio.ui.BluetoothListActivity;
 import com.github.teocci.newsmartaudio.utils.LogHelper;
 
+import java.io.ByteArrayOutputStream;
+
 /**
  * Created by teocci.
  *
@@ -18,13 +20,6 @@ public class BluetoothService
 {
     private final String TAG = LogHelper.makeLogTag(BluetoothService.class);
 
-    private Activity activity;
-    private BluetoothAdapter bluetoothAdapter;
-
-    private BluetoothConnectThread connectThread;
-    private BluetoothClientThread clientThread;
-    private int state;
-
     protected static final int STATE_NONE = 0;
     protected static final int STATE_LISTEN = 1;
     protected static final int STATE_CONNECTING = 2;
@@ -32,6 +27,13 @@ public class BluetoothService
 
     private final static int REQUEST_ENABLE_BT = 1;
     private final static int REQUEST_CONNECT_DEVICE = 2;
+
+    private Activity activity;
+    private BluetoothAdapter bluetoothAdapter;
+
+    private BluetoothConnectThread connectThread;
+    private BluetoothClientThread clientThread;
+    private int state;
 
     public BluetoothService(Activity activity)
     {
@@ -109,14 +111,22 @@ public class BluetoothService
         }
     }
 
-    protected synchronized void setState(int state)
+    public void sendCommandToBT(String command)
     {
-        this.state = state;
-    }
+        if (!isServiceConnected()) return;
 
-    protected synchronized int getState()
-    {
-        return this.state;
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try {
+            outputStream.write(command.getBytes());
+
+            byte[] buffer;
+            buffer = outputStream.toByteArray();
+            write(buffer);
+
+            outputStream.reset();
+        } catch (Exception e) {
+            LogHelper.e(TAG, e.getMessage());
+        }
     }
 
     public void enableBluetooth()
@@ -131,6 +141,26 @@ public class BluetoothService
     {
         Intent intent = new Intent(activity, BluetoothListActivity.class);
         activity.startActivityForResult(intent, REQUEST_CONNECT_DEVICE);
+    }
+
+    public void connectionFailed()
+    {
+        setState(STATE_LISTEN);
+    }
+
+    public void setBluetoothConnectThread(BluetoothConnectThread connectThread)
+    {
+        this.connectThread = connectThread;
+    }
+
+    protected synchronized void setState(int state)
+    {
+        this.state = state;
+    }
+
+    protected synchronized int getState()
+    {
+        return this.state;
     }
 
     public void getDeviceInfo(Intent data)
@@ -165,15 +195,5 @@ public class BluetoothService
         synchronized (this) {
             return state == STATE_CONNECTED;
         }
-    }
-
-    public void setBluetoothConnectThread(BluetoothConnectThread connectThread)
-    {
-        this.connectThread = connectThread;
-    }
-
-    public void connectionFailed()
-    {
-        setState(STATE_LISTEN);
     }
 }

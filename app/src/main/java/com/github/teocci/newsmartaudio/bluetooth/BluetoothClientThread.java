@@ -33,7 +33,7 @@ public class BluetoothClientThread extends Thread
     {
         this.bluetoothSocket = socket;
         this.bluetoothService = bluetoothService;
-        callerActivity = this.bluetoothService.getCallerActivity();
+        this.callerActivity = bluetoothService.getCallerActivity();
 
         try {
             inputStream = socket.getInputStream();
@@ -50,7 +50,7 @@ public class BluetoothClientThread extends Thread
                 Toast.makeText(callerActivity, R.string.connect_success, Toast.LENGTH_SHORT).show();
             }
         });
-        ((SmartAudioActivity) callerActivity).successConnection();
+        ((SmartAudioActivity) callerActivity).successBTConnection();
     }
 
     public void run()
@@ -97,7 +97,8 @@ public class BluetoothClientThread extends Thread
                 Toast.makeText(callerActivity, R.string.connection_lost, Toast.LENGTH_SHORT).show();
             }
         });
-        ((SmartAudioActivity) callerActivity).stopConnection();
+
+        ((SmartAudioActivity) callerActivity).stopBTConnection();
         bluetoothService.setState(STATE_LISTEN);
     }
 }

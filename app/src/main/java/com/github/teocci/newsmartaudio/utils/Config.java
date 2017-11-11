@@ -12,9 +12,14 @@ public class Config
     public static final String LOG_PREFIX = "[AMixer]";
 
     /**
-     * By default AMR is the audio encoder.
+     * By default AAC is the audio encoder.
      */
     public static int AUDIO_ENCODER = SessionBuilder.AUDIO_AAC;
+
+    /**
+     * By default NONE is the video encoder.
+     */
+    public static int VIDEO_ENCODER = SessionBuilder.VIDEO_NONE;
 
     public static int DEFAULT_BT_PORT = 7777;
 

@@ -45,7 +45,6 @@ import com.github.teocci.newsmartaudio.utils.NSDHelper;
 import net.kseek.streaming.SessionBuilder;
 import net.kseek.streaming.rtsp.RtspServer;
 
-import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Locale;
 
@@ -54,9 +53,11 @@ import static com.github.teocci.newsmartaudio.utils.Config.CLIENT_MODE;
 import static com.github.teocci.newsmartaudio.utils.Config.COMMAND_SEPARATOR;
 import static com.github.teocci.newsmartaudio.utils.Config.KEY_STATION_NAME;
 import static com.github.teocci.newsmartaudio.utils.Config.PARAMETER_SEPARATOR;
+import static com.github.teocci.newsmartaudio.utils.Config.VIDEO_ENCODER;
 import static com.github.teocci.newsmartaudio.utils.Utilities.getLocalIpAddress;
 import static net.kseek.streaming.utils.Config.KEY_NOTIFICATION_ENABLED;
 import static net.kseek.streaming.utils.Config.KEY_STREAM_AUDIO;
+import static net.kseek.streaming.utils.Config.KEY_STREAM_VIDEO;
 
 /**
  * SmartAudio basically launches an RTSP server, so clients can then connect to it
@@ -84,7 +85,6 @@ public class SmartAudioActivity extends AppCompatActivity
 
     private BluetoothService bluetoothService;
     private ControlConnector controlConnector;
-    private ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 //    private MenuItem bluetoothMenu;
 
     private final static int REQUEST_ENABLE_BT = 1;
@@ -111,20 +111,7 @@ public class SmartAudioActivity extends AppCompatActivity
         public void onError(RtspServer server, Exception e, int error)
         {
             // We alert the user that the port is already used by another app.
-            if (error == RtspServer.ERROR_BIND_FAILED) {
-                new AlertDialog.Builder(SmartAudioActivity.this)
-                        .setTitle(R.string.port_used)
-                        .setMessage(getString(R.string.bind_failed, "RTSP"))
-                        .setPositiveButton("OK", new DialogInterface.OnClickListener()
-                        {
-                            public void onClick(final DialogInterface dialog, final int id)
-                            {
-                                startActivityForResult(new Intent(SmartAudioActivity.this,
-                                        PreferencesActivity.class), 0);
-                            }
-                        })
-                        .show();
-            }
+            showsPortInUseError(error);
         }
 
         @Override
@@ -142,45 +129,16 @@ public class SmartAudioActivity extends AppCompatActivity
     private ControlListener controlListener = new ControlListener()
     {
         @Override
-        public void receiveCommand(String str)
+        public void receiveCommand(String cmd)
         {
-            String[] commands = str.split(COMMAND_SEPARATOR);
-            switch (commands[0]) {
-                case "BT":
-                    sendCommandToBT(commands[1]);
-                    break;
-                case "P":
-                    break;
-                case "SET":
-                    String[] parameter = commands[1].split(PARAMETER_SEPARATOR);
-                    switch (parameter[0]) {
-                        case "NAME":
-                            // change de name
-                            break;
-                        case "ZOOM":
-                            int zoom = Integer.valueOf(parameter[1]);
-
-                            if (rtspServer != null && rtspServer.isStreaming())
-                                rtspServer.setZoom(zoom);
-                            break;
-                    }
-                    break;
-                case "SETOK":
-                    break;
-            }
+            processCommand(cmd);
         }
 
         @Override
         public void connectionSetting(final boolean isConnected)
         {
-//            adapter.getHandsetFragment().controlTextUpdate(isConnected);
-            if (isConnected && controlConnector != null) {
-                if (bluetoothService.isServiceConnected()) {
-                    controlConnector.write("STATE;BT:1;\n");
-                } else {
-                    controlConnector.write("STATE;BT:0;\n");
-                }
-            }
+            if (isConnected && controlConnector == null) return;
+            controlConnector.sendBTConnected(isBTConnected());
         }
     };
 
@@ -224,6 +182,7 @@ public class SmartAudioActivity extends AppCompatActivity
 //        ColorDrawable colorDrawable = new ColorDrawable(Color.parseColor("#272D39"));
 //        actionBar.setBackgroundDrawable(colorDrawable);
 
+        initSettings();
         initBluetoothService();
         initControlConnector();
         initNsdHelper();
@@ -311,6 +270,7 @@ public class SmartAudioActivity extends AppCompatActivity
     {
         LogHelper.d(TAG, "SmartAudioActivity destroyed");
         nsdHelper.tearDown();
+        closeServices();
         super.onDestroy();
     }
 
@@ -358,44 +318,35 @@ public class SmartAudioActivity extends AppCompatActivity
     {
         switch (item.getItemId()) {
             case R.id.menu_quit:
-                closeService();
+                closeServices();
+                // Returns to home menu
+                finish();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
-    private void sendCommandToBT(String str)
+    private void initSettings()
     {
-        if (!bluetoothService.isServiceConnected()) return;
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
 
-        try {
-            outputStream.write(str.getBytes());
+        notificationEnabled = settings.getBoolean(KEY_NOTIFICATION_ENABLED, true);
 
-            byte[] buffer;
-            buffer = outputStream.toByteArray();
-            bluetoothService.write(buffer);
+        stationName = settings.getString(KEY_STATION_NAME, null);
+        if ((stationName == null) || stationName.isEmpty()) {
+            stationName = Build.MODEL;
 
-            outputStream.reset();
-        } catch (Exception e) {
-            LogHelper.e(TAG, e.getMessage());
+            final SharedPreferences.Editor editor = settings.edit();
+            editor.putString(KEY_STATION_NAME, stationName);
+            editor.apply();
         }
-    }
 
-    private void initUserInterface()
-    {
-        currentStationName = (TextView) findViewById(R.id.current_station_name);
-        deviceIpTitle = (TextView) findViewById(R.id.device_ip_title);
-        deviceIpValue = (TextView) findViewById(R.id.device_ip_value);
-        version = (TextView) findViewById(R.id.version);
-        signWifi = (TextView) findViewById(R.id.advice);
-        signStreaming = (LinearLayout) findViewById(R.id.streaming);
-        signInformation = (LinearLayout) findViewById(R.id.information);
-        pulseAnimation = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.pulse);
-        textBitrate = (TextView) findViewById(R.id.bitrate);
-        controlText = (TextView) findViewById(R.id.control_text);
-        imageViewLeft = (ImageView) findViewById(R.id.image_view_left);
-        imageViewRight = (ImageView) findViewById(R.id.image_view_right);
+        SessionBuilder.getInstance()
+                .setContext(getApplicationContext())
+                .setAudioEncoder(!settings.getBoolean(KEY_STREAM_AUDIO, true) ? 0 : AUDIO_ENCODER)
+                .setVideoEncoder(!settings.getBoolean(KEY_STREAM_VIDEO, false) ? 0 : VIDEO_ENCODER);
     }
 
     public void initBluetoothService()
@@ -418,26 +369,94 @@ public class SmartAudioActivity extends AppCompatActivity
 
     private void initNsdHelper()
     {
-        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
-        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
-        SessionBuilder.getInstance()
-                .setContext(getApplicationContext())
-                .setAudioEncoder(!settings.getBoolean(KEY_STREAM_AUDIO, true) ? 0 : AUDIO_ENCODER);
-
-        notificationEnabled = settings.getBoolean(KEY_NOTIFICATION_ENABLED, true);
-
-        stationName = settings.getString(KEY_STATION_NAME, null);
-        if ((stationName == null) || stationName.isEmpty())
-            stationName = Build.MODEL;
-
-        final SharedPreferences.Editor editor = settings.edit();
-        editor.putString(KEY_STATION_NAME, stationName);
-        editor.apply();
-
         nsdHelper = new NSDHelper(this);
         nsdHelper.setOperationMode(CLIENT_MODE);
         nsdHelper.setStationName(stationName);
         nsdHelper.registerService();
+    }
+
+    private void initUserInterface()
+    {
+        currentStationName = (TextView) findViewById(R.id.current_station_name);
+        deviceIpTitle = (TextView) findViewById(R.id.device_ip_title);
+        deviceIpValue = (TextView) findViewById(R.id.device_ip_value);
+        version = (TextView) findViewById(R.id.version);
+        signWifi = (TextView) findViewById(R.id.advice);
+        signStreaming = (LinearLayout) findViewById(R.id.streaming);
+        signInformation = (LinearLayout) findViewById(R.id.information);
+        pulseAnimation = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.pulse);
+        textBitrate = (TextView) findViewById(R.id.bitrate);
+        controlText = (TextView) findViewById(R.id.control_text);
+        imageViewLeft = (ImageView) findViewById(R.id.image_view_left);
+        imageViewRight = (ImageView) findViewById(R.id.image_view_right);
+    }
+
+    private void processCommand(String cmd)
+    {
+        String[] commands = cmd.split(COMMAND_SEPARATOR);
+        switch (commands[0]) {
+            case "BT":
+                bluetoothService.sendCommandToBT(commands[1]);
+                break;
+            case "P":
+                break;
+            case "SET":
+                String[] parameter = commands[1].split(PARAMETER_SEPARATOR);
+                switch (parameter[0]) {
+                    case "NAME":
+                        // change de name
+                        String newName = parameter[1];
+                        modifyName(newName);
+                        update();
+                        break;
+                    case "ZOOM":
+                        int zoom = Integer.valueOf(parameter[1]);
+
+                        if (rtspServer != null && rtspServer.isStreaming())
+                            rtspServer.setZoom(zoom);
+                        break;
+                }
+                break;
+            case "SETOK":
+                break;
+        }
+    }
+
+    private void modifyName(String newName)
+    {
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
+        final SharedPreferences.Editor editor = settings.edit();
+        editor.putString(KEY_STATION_NAME, newName);
+        editor.apply();
+
+        if (controlConnector != null) {
+            controlConnector.sendSetOk("NAME");
+        }
+    }
+
+    private void sendByeCommand()
+    {
+        if (controlConnector != null) {
+            controlConnector.sendBye();
+        }
+    }
+
+    private void showsPortInUseError(int error)
+    {
+        if (error == RtspServer.ERROR_BIND_FAILED) {
+            new AlertDialog.Builder(SmartAudioActivity.this)
+                    .setTitle(R.string.port_used)
+                    .setMessage(getString(R.string.bind_failed, "RTSP"))
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener()
+                    {
+                        public void onClick(final DialogInterface dialog, final int id)
+                        {
+                            startActivityForResult(new Intent(SmartAudioActivity.this,
+                                    PreferencesActivity.class), 0);
+                        }
+                    })
+                    .show();
+        }
     }
 
     public void update()
@@ -500,6 +519,8 @@ public class SmartAudioActivity extends AppCompatActivity
 
     private void displayCurrentStationName()
     {
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
+        stationName = settings.getString(KEY_STATION_NAME, null);
         currentStationName.setText(stationName);
     }
 
@@ -536,10 +557,10 @@ public class SmartAudioActivity extends AppCompatActivity
         }
     }
 
-    public void successConnection()
+    public void successBTConnection()
     {
         if (controlConnector != null)
-            controlConnector.write("STATE;BT:1;");
+            controlConnector.sendBTConnected(true);
 //        runOnUiThread(new Runnable()
 //        {
 //            @Override
@@ -550,10 +571,9 @@ public class SmartAudioActivity extends AppCompatActivity
 //        });
     }
 
-    public void stopConnection()
+    public void stopBTConnection()
     {
-        if (controlConnector != null)
-            controlConnector.write("STATE;BT:0;");
+        closeBTService();
 //        runOnUiThread(new Runnable()
 //        {
 //            @Override
@@ -564,15 +584,15 @@ public class SmartAudioActivity extends AppCompatActivity
 //        });
     }
 
-    private void closeService()
+    private void closeServices()
     {
+        sendByeCommand();
         closeBTService();
+        closeControlService();
         // Removes notification
         if (notificationEnabled) removeNotification();
         // Kills RTSP server
         this.stopService(new Intent(this, CustomRtspServer.class));
-        // Returns to home menu
-        finish();
     }
 
     private void closeBTService()
@@ -580,7 +600,13 @@ public class SmartAudioActivity extends AppCompatActivity
         if (bluetoothService != null) {
             bluetoothService.stop();
             bluetoothService = null;
+
+            if (controlConnector != null)
+                controlConnector.sendBTConnected(false);
         }
+    }
+
+    private void closeControlService() {
         if (controlConnector != null) {
             controlConnector.close();
             controlConnector = null;
@@ -595,5 +621,10 @@ public class SmartAudioActivity extends AppCompatActivity
     public void log(String s)
     {
         Toast.makeText(getApplicationContext(), s, Toast.LENGTH_SHORT).show();
+    }
+
+    private boolean isBTConnected()
+    {
+        return bluetoothService != null && bluetoothService.isServiceConnected();
     }
 }
