@@ -75,9 +75,9 @@ public class ControlConnector extends AsyncTask<Void, Void, Void>
         write(btConnected ? "STATE;BT:1;\n" : "STATE;BT:0;\n");
     }
 
-    public void sendSetOk(String name)
+    public void sendSetOk(String field, String name)
     {
-        write("SETOK;" + name + ";\n");
+        write("SETOK;" + field + ":" + name + ";\n");
     }
 
     public void sendBye()

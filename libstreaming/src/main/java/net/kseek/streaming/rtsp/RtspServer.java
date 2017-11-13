@@ -31,6 +31,7 @@ import android.util.Log;
 
 import net.kseek.streaming.Session;
 import net.kseek.streaming.SessionBuilder;
+import net.kseek.streaming.ntp.NTPClient;
 import net.kseek.streaming.utils.Config;
 import net.kseek.streaming.video.VideoQuality;
 import net.kseek.streaming.video.VideoStream;
@@ -253,6 +254,10 @@ public class RtspServer extends Service {
 				session.getVideoTrack().setZoom(newZoom);
 			}
 		}
+	}
+
+	public void setNTPHostPort(String host, int port) {
+		NTPClient.getInstance(host, port);
 	}
 
 	public boolean isEnabled() {

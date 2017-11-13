@@ -31,6 +31,9 @@ public class NTPClient
     private Long offsetValue;
     private Long delayValue;
 
+    private String host = NTP_SERVER_HOST;
+    private int port = NTP_SEVER_PORT;
+
     private static NTPClient instance;
 
     private static NTPUDPClient client;
@@ -50,19 +53,40 @@ public class NTPClient
         }
     });
 
+    private NTPClient(String host, int port)
+    {
+        this.host = host;
+        this.port = port;
+
+        openNTPConnection();
+    }
+
     private NTPClient()
     {
         openNTPConnection();
     }
 
-    void startRepeatingTask()
+    private void startRepeatingTask()
     {
         handlerTask.start();
     }
 
-    void stopRepeatingTask()
+    private void stopRepeatingTask()
     {
         handler.removeCallbacks(handlerTask);
+    }
+
+    public static NTPClient getInstance(String host, int port)
+    {
+        if (instance == null) {
+            synchronized (NTPClient.class) {
+                if (instance == null) {
+                    instance = new NTPClient(host, port);
+                }
+            }
+        }
+
+        return instance;
     }
 
     public static NTPClient getInstance()
@@ -74,6 +98,7 @@ public class NTPClient
                 }
             }
         }
+
         return instance;
     }
 
@@ -87,7 +112,7 @@ public class NTPClient
         client.setDefaultTimeout(5000);
         try {
             client.open();
-            ntpServer = InetAddress.getByName(NTP_SERVER_HOST);
+            ntpServer = InetAddress.getByName(host);
             startRepeatingTask();
         } catch (SocketException | UnknownHostException e) {
             e.printStackTrace();
@@ -100,7 +125,7 @@ public class NTPClient
     {
         if (client != null && client.isOpen()) {
             try {
-                TimeInfo info = client.getTime(ntpServer, NTP_SEVER_PORT);
+                TimeInfo info = client.getTime(ntpServer, port);
                 info.computeDetails(); // compute offset/delay if not already done
 
                 offsetValue = info.getOffset();

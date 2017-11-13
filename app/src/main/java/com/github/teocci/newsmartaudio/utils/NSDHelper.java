@@ -390,7 +390,10 @@ public class NSDHelper
     public void discoverServices()
     {
         nsdManager.discoverServices(
-                SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, discoveryListener);
+                SERVICE_TYPE,
+                NsdManager.PROTOCOL_DNS_SD,
+                discoveryListener
+        );
     }
 
     public void setStationName(String stationName)

@@ -53,6 +53,8 @@ import static com.github.teocci.newsmartaudio.utils.Config.CLIENT_MODE;
 import static com.github.teocci.newsmartaudio.utils.Config.COMMAND_SEPARATOR;
 import static com.github.teocci.newsmartaudio.utils.Config.KEY_STATION_NAME;
 import static com.github.teocci.newsmartaudio.utils.Config.PARAMETER_SEPARATOR;
+import static com.github.teocci.newsmartaudio.utils.Config.TAG_WAKELOCK;
+import static com.github.teocci.newsmartaudio.utils.Config.VALUE_SEPARATOR;
 import static com.github.teocci.newsmartaudio.utils.Config.VIDEO_ENCODER;
 import static com.github.teocci.newsmartaudio.utils.Utilities.getLocalIpAddress;
 import static net.kseek.streaming.utils.Config.KEY_NOTIFICATION_ENABLED;
@@ -191,7 +193,7 @@ public class SmartAudioActivity extends AppCompatActivity
 
         // Prevents the phone from going to sleep mode
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "com.github.teocci.newsmartaudio.wakelock");
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG_WAKELOCK);
 
         // Starts the service of the RTSP server
         this.startService(new Intent(this, CustomRtspServer.class));
@@ -349,6 +351,23 @@ public class SmartAudioActivity extends AppCompatActivity
                 .setVideoEncoder(!settings.getBoolean(KEY_STREAM_VIDEO, false) ? 0 : VIDEO_ENCODER);
     }
 
+    private void initUserInterface()
+    {
+        currentStationName = (TextView) findViewById(R.id.current_station_name);
+        deviceIpTitle = (TextView) findViewById(R.id.device_ip_title);
+        deviceIpValue = (TextView) findViewById(R.id.device_ip_value);
+        version = (TextView) findViewById(R.id.version);
+        signWifi = (TextView) findViewById(R.id.advice);
+        signStreaming = (LinearLayout) findViewById(R.id.streaming);
+        signInformation = (LinearLayout) findViewById(R.id.information);
+        pulseAnimation = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.pulse);
+        textBitrate = (TextView) findViewById(R.id.bitrate);
+        controlText = (TextView) findViewById(R.id.control_text);
+        imageViewLeft = (ImageView) findViewById(R.id.image_view_left);
+        imageViewRight = (ImageView) findViewById(R.id.image_view_right);
+    }
+
+
     public void initBluetoothService()
     {
         if (bluetoothService == null) {
@@ -374,23 +393,6 @@ public class SmartAudioActivity extends AppCompatActivity
         nsdHelper.setStationName(stationName);
         nsdHelper.registerService();
     }
-
-    private void initUserInterface()
-    {
-        currentStationName = (TextView) findViewById(R.id.current_station_name);
-        deviceIpTitle = (TextView) findViewById(R.id.device_ip_title);
-        deviceIpValue = (TextView) findViewById(R.id.device_ip_value);
-        version = (TextView) findViewById(R.id.version);
-        signWifi = (TextView) findViewById(R.id.advice);
-        signStreaming = (LinearLayout) findViewById(R.id.streaming);
-        signInformation = (LinearLayout) findViewById(R.id.information);
-        pulseAnimation = AnimationUtils.loadAnimation(getApplicationContext(), R.anim.pulse);
-        textBitrate = (TextView) findViewById(R.id.bitrate);
-        controlText = (TextView) findViewById(R.id.control_text);
-        imageViewLeft = (ImageView) findViewById(R.id.image_view_left);
-        imageViewRight = (ImageView) findViewById(R.id.image_view_right);
-    }
-
     private void processCommand(String cmd)
     {
         String[] commands = cmd.split(COMMAND_SEPARATOR);
@@ -415,6 +417,17 @@ public class SmartAudioActivity extends AppCompatActivity
                         if (rtspServer != null && rtspServer.isStreaming())
                             rtspServer.setZoom(zoom);
                         break;
+                    case "NTP":
+                        // SET;NTP;IP,[ip]:PORT,[port];\t:
+                        String[] parameters = commands[2].split(PARAMETER_SEPARATOR);
+                        String[] value = parameters[0].split(VALUE_SEPARATOR);
+                        String ip = value[0].equals("IP") ? value[1] : "";
+                        value = parameters[1].split(VALUE_SEPARATOR);
+                        int port = value[0].equals("PORT") ? Integer.valueOf(value[1]) : 0;
+
+                        if (rtspServer != null)
+                            rtspServer.setNTPHostPort(ip, port);
+                        break;
                 }
                 break;
             case "SETOK":
@@ -430,7 +443,7 @@ public class SmartAudioActivity extends AppCompatActivity
         editor.apply();
 
         if (controlConnector != null) {
-            controlConnector.sendSetOk("NAME");
+            controlConnector.sendSetOk("NAME", newName);
         }
     }
 
@@ -457,6 +470,78 @@ public class SmartAudioActivity extends AppCompatActivity
                     })
                     .show();
         }
+    }
+
+    public void successBTConnection()
+    {
+        if (controlConnector != null)
+            controlConnector.sendBTConnected(true);
+//        runOnUiThread(new Runnable()
+//        {
+//            @Override
+//            public void run()
+//            {
+//                bluetoothMenu.setVisible(false);
+//            }
+//        });
+    }
+
+    public void stopBTConnection()
+    {
+        closeBTService();
+//        runOnUiThread(new Runnable()
+//        {
+//            @Override
+//            public void run()
+//            {
+//                bluetoothMenu.setVisible(true);
+//            }
+//        });
+    }
+
+    private void closeServices()
+    {
+        sendByeCommand();
+        closeBTService();
+        closeControlService();
+        // Removes notification
+        if (notificationEnabled) removeNotification();
+        // Kills RTSP server
+        this.stopService(new Intent(this, CustomRtspServer.class));
+    }
+
+    private void closeBTService()
+    {
+        if (bluetoothService != null) {
+            bluetoothService.stop();
+            bluetoothService = null;
+
+            if (controlConnector != null)
+                controlConnector.sendBTConnected(false);
+        }
+    }
+
+    private void closeControlService()
+    {
+        if (controlConnector != null) {
+            controlConnector.close();
+            controlConnector = null;
+        }
+    }
+
+    private void removeNotification()
+    {
+        ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).cancel(0);
+    }
+
+    public void log(String s)
+    {
+        Toast.makeText(getApplicationContext(), s, Toast.LENGTH_SHORT).show();
+    }
+
+    private boolean isBTConnected()
+    {
+        return bluetoothService != null && bluetoothService.isServiceConnected();
     }
 
     public void update()
@@ -555,76 +640,5 @@ public class SmartAudioActivity extends AppCompatActivity
             imageViewLeft.setImageResource(R.drawable.ic_disconnect_sign);
             imageViewRight.setImageResource(R.drawable.ic_disconnect_sign);
         }
-    }
-
-    public void successBTConnection()
-    {
-        if (controlConnector != null)
-            controlConnector.sendBTConnected(true);
-//        runOnUiThread(new Runnable()
-//        {
-//            @Override
-//            public void run()
-//            {
-//                bluetoothMenu.setVisible(false);
-//            }
-//        });
-    }
-
-    public void stopBTConnection()
-    {
-        closeBTService();
-//        runOnUiThread(new Runnable()
-//        {
-//            @Override
-//            public void run()
-//            {
-//                bluetoothMenu.setVisible(true);
-//            }
-//        });
-    }
-
-    private void closeServices()
-    {
-        sendByeCommand();
-        closeBTService();
-        closeControlService();
-        // Removes notification
-        if (notificationEnabled) removeNotification();
-        // Kills RTSP server
-        this.stopService(new Intent(this, CustomRtspServer.class));
-    }
-
-    private void closeBTService()
-    {
-        if (bluetoothService != null) {
-            bluetoothService.stop();
-            bluetoothService = null;
-
-            if (controlConnector != null)
-                controlConnector.sendBTConnected(false);
-        }
-    }
-
-    private void closeControlService() {
-        if (controlConnector != null) {
-            controlConnector.close();
-            controlConnector = null;
-        }
-    }
-
-    private void removeNotification()
-    {
-        ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).cancel(0);
-    }
-
-    public void log(String s)
-    {
-        Toast.makeText(getApplicationContext(), s, Toast.LENGTH_SHORT).show();
-    }
-
-    private boolean isBTConnected()
-    {
-        return bluetoothService != null && bluetoothService.isServiceConnected();
-    }
+    }	
 }
