@@ -12,6 +12,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
@@ -119,13 +120,10 @@ public class SmartAudioActivity extends AppCompatActivity
         @Override
         public void onMessage(RtspServer server, int message)
         {
-            if (message == RtspServer.MESSAGE_STREAMING_STARTED) {
-                update();
-            } else if (message == RtspServer.MESSAGE_STREAMING_STOPPED) {
+            if (message == RtspServer.MESSAGE_STREAMING_STARTED || message == RtspServer.MESSAGE_STREAMING_STOPPED) {
                 update();
             }
         }
-
     };
 
     private ControlListener controlListener = new ControlListener()
@@ -151,7 +149,7 @@ public class SmartAudioActivity extends AppCompatActivity
         {
             String action = intent.getAction();
             // This intent is also received when app resumes even if wifi state hasn't changed :/
-            if (action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
+            if (action != null && action.equals(WifiManager.NETWORK_STATE_CHANGED_ACTION)) {
                 update();
             }
         }
@@ -185,78 +183,28 @@ public class SmartAudioActivity extends AppCompatActivity
 //        actionBar.setBackgroundDrawable(colorDrawable);
 
         initSettings();
+        initUIElements();
+
         initBluetoothService();
         initControlConnector();
         initNsdHelper();
 
-        initUserInterface();
-
-        // Prevents the phone from going to sleep mode
-        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG_WAKELOCK);
+        initWakeLock();
 
         // Starts the service of the RTSP server
         this.startService(new Intent(this, CustomRtspServer.class));
     }
 
     @Override
-    public void onStart()
-    {
-        super.onStart();
-
-        // Lock screen
-        wakeLock.acquire();
-
-        // Did the user disabled the notification ?
-        if (notificationEnabled) {
-            Intent notificationIntent = new Intent(this, SmartAudioActivity.class);
-            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
-                    PendingIntent.FLAG_CANCEL_CURRENT);
-
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
-            Notification notification = builder.setContentIntent(pendingIntent)
-                    .setWhen(System.currentTimeMillis())
-                    .setTicker(getText(R.string.notification_config_title))
-                    .setSmallIcon(R.drawable.ic_smart_audio_noti_icon)
-                    .setContentTitle(getText(R.string.notification_config_title))
-                    .setContentText(getText(R.string.notification_content)).build();
-            notification.flags |= Notification.FLAG_ONGOING_EVENT;
-            ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).notify(0,
-                    notification);
-        } else {
-            removeNotification();
-        }
-
-//        bindService(
-//                new Intent(this, CustomRtspServer.class),
-//                rtspServiceConnection,
-//                Context.BIND_AUTO_CREATE
-//        );
-    }
-
-    @Override
     public void onResume()
     {
         super.onResume();
-        bindService(
-                new Intent(this, CustomRtspServer.class),
-                rtspServiceConnection,
-                Context.BIND_AUTO_CREATE
-        );
-        registerReceiver(
-                wifiStateReceiver,
-                new IntentFilter(WifiManager.NETWORK_STATE_CHANGED_ACTION)
-        );
-    }
 
-    @Override
-    public void onStop()
-    {
-        super.onStop();
-        // A WakeLock should only be released when isHeld() is true !
-        if (wakeLock.isHeld()) wakeLock.release();
-        if (rtspServer != null) rtspServer.removeCallbackListener(rtspCallbackListener);
-        unbindService(rtspServiceConnection);
+        LogHelper.d(TAG, "onResume");
+
+        initWakeLock();
+        loadNotification();
+        bindListeners();
     }
 
     @Override
@@ -265,15 +213,19 @@ public class SmartAudioActivity extends AppCompatActivity
         super.onPause();
         update();
         unregisterReceiver(wifiStateReceiver);
+        releaseWakeLock();
     }
 
     @Override
     public void onDestroy()
     {
-        LogHelper.d(TAG, "SmartAudioActivity destroyed");
+        super.onDestroy();
+
+        LogHelper.d(TAG, "onDestroy");
         nsdHelper.tearDown();
         closeServices();
-        super.onDestroy();
+        releaseWakeLock();
+        unbindListeners();
     }
 
     @Override
@@ -351,7 +303,7 @@ public class SmartAudioActivity extends AppCompatActivity
                 .setVideoEncoder(!settings.getBoolean(KEY_STREAM_VIDEO, false) ? 0 : VIDEO_ENCODER);
     }
 
-    private void initUserInterface()
+    private void initUIElements()
     {
         currentStationName = (TextView) findViewById(R.id.current_station_name);
         deviceIpTitle = (TextView) findViewById(R.id.device_ip_title);
@@ -393,6 +345,81 @@ public class SmartAudioActivity extends AppCompatActivity
         nsdHelper.setStationName(stationName);
         nsdHelper.registerService();
     }
+
+    private void initWakeLock()
+    {
+        // Prevents the phone from going to sleep mode
+        if (wakeLock == null) {
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            if (pm != null) {
+                wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG_WAKELOCK);
+                // Lock screen
+                wakeLock.acquire();
+            }
+        }
+    }
+
+    private void loadNotification()
+    {
+        // Did the user disabled the notification ?
+        if (notificationEnabled) {
+            Intent notificationIntent = new Intent(this, SmartAudioActivity.class);
+            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notificationIntent,
+                    PendingIntent.FLAG_CANCEL_CURRENT);
+
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
+            Notification notification = builder.setContentIntent(pendingIntent)
+                    .setWhen(System.currentTimeMillis())
+                    .setTicker(getText(R.string.notification_config_title))
+                    .setSmallIcon(R.drawable.ic_smart_audio_noti_icon)
+                    .setContentTitle(getText(R.string.notification_config_title))
+                    .setContentText(getText(R.string.notification_content)).build();
+            notification.flags |= Notification.FLAG_ONGOING_EVENT;
+            ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE)).notify(0,
+                    notification);
+        } else {
+            removeNotification();
+        }
+    }
+
+    private void bindListeners()
+    {
+        bindService(
+                new Intent(this, CustomRtspServer.class),
+                rtspServiceConnection,
+                Context.BIND_AUTO_CREATE
+        );
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+        filter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+
+        registerReceiver(wifiStateReceiver, filter);
+    }
+
+    private void releaseWakeLock()
+    {
+        // A WakeLock should only be released when isHeld() is true !
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+            wakeLock = null;
+        }
+    }
+
+    private void unbindListeners()
+    {
+        if (rtspServer != null) {
+            rtspServer.removeCallbackListener(rtspCallbackListener);
+        }
+
+        try {
+            unbindService(rtspServiceConnection);
+            unregisterReceiver(wifiStateReceiver);
+        } catch (IllegalArgumentException iae) {
+            iae.printStackTrace();
+        }
+    }
+
     private void processCommand(String cmd)
     {
         String[] commands = cmd.split(COMMAND_SEPARATOR);
@@ -640,5 +667,5 @@ public class SmartAudioActivity extends AppCompatActivity
             imageViewLeft.setImageResource(R.drawable.ic_disconnect_sign);
             imageViewRight.setImageResource(R.drawable.ic_disconnect_sign);
         }
-    }	
+    }
 }

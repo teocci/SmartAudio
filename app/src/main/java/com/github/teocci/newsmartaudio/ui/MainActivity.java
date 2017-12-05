@@ -39,6 +39,7 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.content.pm.PackageManager.PERMISSION_DENIED;
 import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static com.github.teocci.newsmartaudio.utils.Config.KEY_FEATURE_GUIDE;
+import static com.github.teocci.newsmartaudio.utils.Config.REQUEST_ALL;
 
 public class MainActivity extends AppCompatActivity
 {
@@ -58,32 +59,7 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initPermissions();
-
-
-        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-        StrictMode.setThreadPolicy(policy);
-
-//        ActionBar actionBar = getActionBar();
-//        ColorDrawable colorDrawable = new ColorDrawable(Color.parseColor("#272D39"));
-//        actionBar.setBackgroundDrawable(colorDrawable);
-//        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-//        setSupportActionBar(toolbar);
-
-        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
-        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
-        featureGuide = settings.getBoolean(KEY_FEATURE_GUIDE, true);
-
-        circleButton = (CircleButtonView) findViewById(R.id.circleButton);
-        circleButton.setOnClickListener(new View.OnClickListener()
-        {
-            @Override
-            public void onClick(View v)
-            {
-                cleanFeatureGuide();
-                Intent intent = new Intent(getApplicationContext(), SmartAudioActivity.class);
-                startActivity(intent);
-            }
-        });
+        initSettings();
     }
 
     @Override
@@ -165,6 +141,34 @@ public class MainActivity extends AppCompatActivity
             requirePermissions();
     }
 
+    private void initSettings()
+    {
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
+
+//        ActionBar actionBar = getActionBar();
+//        ColorDrawable colorDrawable = new ColorDrawable(Color.parseColor("#272D39"));
+//        actionBar.setBackgroundDrawable(colorDrawable);
+//        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+//        setSupportActionBar(toolbar);
+
+        PreferenceManager.setDefaultValues(this, R.xml.preferences, false);
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
+        featureGuide = settings.getBoolean(KEY_FEATURE_GUIDE, true);
+
+        circleButton = (CircleButtonView) findViewById(R.id.circleButton);
+        circleButton.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                cleanFeatureGuide();
+                Intent intent = new Intent(getApplicationContext(), SmartAudioActivity.class);
+                startActivity(intent);
+            }
+        });
+    }
+
     private void initFeatureMenuGuide(final MenuItem item)
     {
         View anchorView = item.getActionView();
@@ -237,7 +241,7 @@ public class MainActivity extends AppCompatActivity
         ActivityCompat.requestPermissions(
                 this,
                 new String[]{CAMERA, RECORD_AUDIO, WRITE_EXTERNAL_STORAGE, READ_PHONE_STATE},
-                11
+                REQUEST_ALL
         );
     }
 

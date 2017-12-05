@@ -23,6 +23,8 @@ public class Config
 
     public static int DEFAULT_BT_PORT = 7777;
 
+    public static int REQUEST_ALL = 100;
+
     public static final String KEY_OPERATION_MODE = "operation_mode";
     public static final String KEY_STATION_NAME = "station_name";
     public static final String KEY_USED_NAMES = "station_used_names";
