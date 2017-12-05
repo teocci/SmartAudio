@@ -1,21 +1,22 @@
 package com.github.teocci.newsmartaudio.ui;
 
+import android.app.AlertDialog;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ImageSpan;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -28,6 +29,15 @@ import com.github.teocci.newsmartaudio.R;
 import com.github.teocci.newsmartaudio.api.CustomRtspServer;
 import com.github.teocci.newsmartaudio.views.CircleButtonView;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import static android.Manifest.permission.CAMERA;
+import static android.Manifest.permission.READ_PHONE_STATE;
+import static android.Manifest.permission.RECORD_AUDIO;
+import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+import static android.content.pm.PackageManager.PERMISSION_DENIED;
+import static android.content.pm.PackageManager.PERMISSION_GRANTED;
 import static com.github.teocci.newsmartaudio.utils.Config.KEY_FEATURE_GUIDE;
 
 public class MainActivity extends AppCompatActivity
@@ -40,17 +50,18 @@ public class MainActivity extends AppCompatActivity
     private CircleButtonView circleButton;
 
     private boolean featureGuide;
+    private boolean gotPermissions;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        initPermissions();
 
-        if (android.os.Build.VERSION.SDK_INT > 9) {
-            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-            StrictMode.setThreadPolicy(policy);
-        }
+
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
 
 //        ActionBar actionBar = getActionBar();
 //        ColorDrawable colorDrawable = new ColorDrawable(Color.parseColor("#272D39"));
@@ -105,6 +116,53 @@ public class MainActivity extends AppCompatActivity
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults)
+    {
+        Map<String, Integer> perm = new HashMap<>();
+        perm.put(CAMERA, PERMISSION_DENIED);
+        perm.put(RECORD_AUDIO, PERMISSION_DENIED);
+        perm.put(WRITE_EXTERNAL_STORAGE, PERMISSION_DENIED);
+        perm.put(READ_PHONE_STATE, PERMISSION_DENIED);
+
+        for (int i = 0; i < permissions.length; i++) {
+            perm.put(permissions[i], grantResults[i]);
+        }
+
+        if (perm.get(CAMERA) == PERMISSION_GRANTED &&
+                perm.get(RECORD_AUDIO) == PERMISSION_GRANTED &&
+                perm.get(WRITE_EXTERNAL_STORAGE) == PERMISSION_GRANTED &&
+                perm.get(READ_PHONE_STATE) == PERMISSION_GRANTED) {
+            gotPermissions = true;
+        } else {
+            if (!ActivityCompat.shouldShowRequestPermissionRationale(this, CAMERA) ||
+                    !ActivityCompat.shouldShowRequestPermissionRationale(this, RECORD_AUDIO) ||
+                    !ActivityCompat.shouldShowRequestPermissionRationale(this, WRITE_EXTERNAL_STORAGE) ||
+                    !ActivityCompat.shouldShowRequestPermissionRationale(this, READ_PHONE_STATE)) {
+                new AlertDialog.Builder(this)
+                        .setMessage(R.string.permission_warning)
+                        .setPositiveButton(R.string.dismiss, null)
+                        .show();
+            }
+        }
+
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    private void initPermissions()
+    {
+        int cameraPermission = ContextCompat.checkSelfPermission(this, CAMERA);
+        int microphonePermission = ContextCompat.checkSelfPermission(this, RECORD_AUDIO);
+        int storagePermission = ContextCompat.checkSelfPermission(this, WRITE_EXTERNAL_STORAGE);
+        int phonePermission = ContextCompat.checkSelfPermission(this, READ_PHONE_STATE);
+        gotPermissions = cameraPermission == PERMISSION_GRANTED &&
+                microphonePermission == PERMISSION_GRANTED &&
+                storagePermission == PERMISSION_GRANTED &&
+                phonePermission == PERMISSION_GRANTED;
+        if (!gotPermissions)
+            requirePermissions();
     }
 
     private void initFeatureMenuGuide(final MenuItem item)
@@ -172,6 +230,15 @@ public class MainActivity extends AppCompatActivity
                 .setToolTip(toolTip)
                 .setOverlay(new Overlay().setBackgroundColor(Color.parseColor("#AA000000")))
                 .playOn(item);
+    }
+
+    private void requirePermissions()
+    {
+        ActivityCompat.requestPermissions(
+                this,
+                new String[]{CAMERA, RECORD_AUDIO, WRITE_EXTERNAL_STORAGE, READ_PHONE_STATE},
+                11
+        );
     }
 
     private void closeService()

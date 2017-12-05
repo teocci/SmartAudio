@@ -58,4 +58,7 @@
     <string name="button_guide_title">Stream Now!</string>
     <string name="button_guide_description">Click on "Start" to begin.</string>
 
+    <string name="permission_warning">To continue, please enable Camera, Microphone, Read Write External Storage And Phone permission for this application.</string>
+    <string name="dismiss">Dismiss</string>
+
 </resources>
